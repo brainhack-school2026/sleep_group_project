@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from nilearn import image, plotting
-from nilearn.maskers import NiftiMapsMasker
+from nilearn.maskers import NiftiMapsMasker, NiftiLabelsMasker
 from nilearn.connectome import ConnectivityMeasure
 from nilearn import datasets
 
@@ -40,16 +40,28 @@ writable_cache = '/tmp/nilearn_cache'
 if not os.path.exists(writable_cache):
     os.makedirs(writable_cache)
 
-atlas_dataset = datasets.fetch_atlas_msdl(data_dir=writable_cache)
-atlas_maps = image.load_img(atlas_dataset.maps)
-atlas_labels = atlas_dataset.labels
+# atlas_dataset = datasets.fetch_atlas_msdl(data_dir=writable_cache)
+# atlas_maps = image.load_img(atlas_dataset.maps)
+# atlas_labels = atlas_dataset.labels
 
-atlas_masker = NiftiMapsMasker(
-    maps_img=atlas_maps,
-    standardize=True,
+# atlas_masker = NiftiMapsMasker(
+#     maps_img=atlas_maps,
+#     standardize=True,
+#     detrend=True,
+#     memory=writable_cache,
+#     memory_level=1
+# )
+
+### Shaefer Atals
+atlas_dataset = datasets.fetch_atlas_schaefer_2018(data_dir=writable_cache, n_rois=400, yeo_networks=7)
+atlas_filepath = atlas_dataset.maps
+atlas_labels = atlas_dataset.labels[1:]
+
+atlas_masker = NiftiLabelsMasker(
+    labels_img=atlas_dataset.maps,
+    standardize=True, # Z-scores the time series
     detrend=True,
-    memory=writable_cache,
-    memory_level=1
+    #high_pass=0.009, low_pass=0.08, t_r=2.1 # Adjust TR to your data
 )
 
 atlas_masker.fit()
@@ -58,9 +70,13 @@ correlation_measure = ConnectivityMeasure(kind="correlation")
 
 subjects = sorted(dataset_root.glob("sub-*"))
 
-
+fig, axes = plt.subplots(32, 3, figsize=(15, 110), layout="tight")
+i = 0
 for subject in subjects:
-    fig, axes = plt.subplots(1, 2)
+    
+    axes[i, 0].set_title(f"{subject.name} - Wake")
+    axes[i, 1].set_title(f"{subject.name} - Sleep")
+    axes[i, 2].set_title(f"{subject.name} - Difference")
     print("Found subject:", subject.name)
     func_file_wake = dataset_root / f"{subject.name}/{subject.name}_task-rest_run-1_processed.nii.gz"
 
@@ -70,10 +86,10 @@ for subject in subjects:
 
     data_in_atlas_wake = atlas_masker.fit_transform(func_file_wake)
 
-    correlation_measure = ConnectivityMeasure(kind='correlation', standardize=True,)
-    correlation_matrix = correlation_measure.fit_transform([data_in_atlas_wake])[0]
-    plotting.plot_matrix(correlation_matrix, labels=atlas_labels,
-                     vmax=1, vmin=-1, reorder=False, axes=axes[0])
+    correlation_measure_wake = ConnectivityMeasure(kind='correlation', standardize=False,)
+    correlation_matrix_wake = correlation_measure_wake.fit_transform([data_in_atlas_wake])[0]
+    plotting.plot_matrix(correlation_matrix_wake, labels=None,
+                     vmax=1, vmin=-1, axes=axes[i, 0])
     try: 
         func_file_sleep = dataset_root / f"{subject.name}/{subject.name}_task-sleep_run-1_processed.nii.gz"
 
@@ -83,32 +99,20 @@ for subject in subjects:
 
         data_in_atlas_sleep = atlas_masker.fit_transform(func_file_sleep)
 
-        correlation_measure = ConnectivityMeasure(kind='correlation', standardize=True,)
-        correlation_matrix = correlation_measure.fit_transform([data_in_atlas_sleep])[0]
-        plotting.plot_matrix(correlation_matrix, labels=atlas_labels,
-                        vmax=1, vmin=-1, reorder=False, axes=axes[1])
+        correlation_measure_sleep = ConnectivityMeasure(kind='correlation', standardize=False,)
+        correlation_matrix_sleep = correlation_measure_sleep.fit_transform([data_in_atlas_sleep])[0]
+        plotting.plot_matrix(correlation_matrix_sleep, labels=None,
+                        vmax=1, vmin=-1, axes=axes[i, 1])
+        
+        correlation_matrix_diff = correlation_matrix_wake - correlation_matrix_sleep
+        plotting.plot_matrix(correlation_matrix_diff, labels=None,
+                        vmax=1, vmin=-1, axes=axes[i, 2])
+        
     except ValueError:
         print(f"Sleep file not found for {subject.name}, skipping sleep condition.")
-        axes[1].set_title("Sleep data not available")
-    plt.show()
+        axes[i, 1].set_title("Sleep data not available")
+    i += 1
+ 
+plt.savefig("connectivity_matrices_shaefer_not_standardized.pdf", dpi=300)
 
-#for running through the multiple cases:
 
-from pathlib import Path
-
-dataset_root = Path("/Users/graceburns/Desktop/brainhack/ds003768-download/sourcedata/fMRI_processed_file_1/sub-04")
-
-func_files = sorted(dataset_root.glob("*1_processed.nii.gz"))
-
-for func_file in func_files:
-    print("Processing:", func_file.name)
-
-    timeseries, matrix = compute_connectivity(func_file)
-
-    plot_connectivity_matrix(
-        matrix,
-        atlas_labels,
-        title=func_file.stem
-    )
-
-plt.show()
