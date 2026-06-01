@@ -1,10 +1,7 @@
-# rameswaran_project
+# Sleep Group Project
 
-## About Me
+## Understanding Sleep Stages and Brain Connectivity Using Simultaneous fMRI and EEG
 
-<a href="https://github.com/gaithtry">
-  <img src="https://avatars.githubusercontent.com/u/269539871?v=4" width="100px;" alt=""/>
-  <br /><sub><b>Gaithtry Rameswaran</b></sub>
-</a>
+Question of interest: How does sleep compare to awake fMRI resting state connectivity? And does EEG show similar patterns? 
 
-Medical Biophysics Master's Student.
+Based on the open source dataset: https://openneuro.org/datasets/ds003768/versions/1.0.13
