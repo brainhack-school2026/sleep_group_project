@@ -1,0 +1,11 @@
+Condition,Global_Mean_Coherence
+Overall_Wake,0.521022
+Overall_Sleep,0.478431
+Wake_Delta,0.465694
+Wake_Theta,0.529080
+Wake_Alpha,0.480307
+Wake_Beta,0.505666
+Sleep_Delta,0.509538
+Sleep_Theta,0.571051
+Sleep_Alpha,0.514371
+Sleep_Beta,0.511465
